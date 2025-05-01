@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Code the Critter</title>
+  <style>
+    body { font-family: sans-serif; text-align: center; background: #e0f7fa; }
+    #game-board { display: grid; grid-template-columns: repeat(5, 60px); margin: 20px auto; gap: 2px; }
+    .cell { width: 60px; height: 60px; border: 1px solid #ccc; background: #fff; position: relative; }
+    .critter { background-color: orange; border-radius: 50%; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; font-size: 24px; position: absolute; top: 0; left: 0; }
+    .goal { background-color: #81c784; font-weight: bold; display: flex; align-items: center; justify-content: center; font-size: 16px; }
+    #code-blocks, #code-sequence { display: flex; justify-content: center; gap: 10px; margin-top: 15px; flex-wrap: wrap; }
+    .block { padding: 10px 15px; background: #4dd0e1; color: white; border-radius: 5px; cursor: grab; }
+    .drop-zone { min-height: 40px; min-width: 60px; background: #f1f8e9; border: 1px dashed #aed581; border-radius: 5px; padding: 10px; }
+    button { margin-top: 20px; padding: 10px 20px; font-size: 16px; }
+    #message { margin-top: 20px; font-size: 20px; font-weight: bold; color: #388e3c; }
+  </style>
+</head>
+<body>
+
+<h1>Code the Critter</h1>
+
+<div id="game-board"></div>
+
+<h2>Code Blocks</h2>
+<div id="code-blocks">
+  <div class="block" draggable="true" data-cmd="forward">Forward</div>
+  <div class="block" draggable="true" data-cmd="right">Turn Right</div>
+  <div class="block" draggable="true" data-cmd="left">Turn Left</div>
+</div>
+
+<h2>Drop Commands Here</h2>
+<div id="code-sequence" class="drop-zone"></div>
+
+<button onclick="runCode()">Run Code</button>
+<button onclick="resetGame()">Reset</button>
+
+<div id="message"></div>
+
+<script>
+  const gridSize = 5;
+  let critterX = 0, critterY = 0;
+  let direction = 'right'; // right, down, left, up
+
+  function createBoard() {
+    const board = document.getElementById('game-board');
+    board.innerHTML = '';
+    for (let y = 0; y < gridSize; y++) {
+      for (let x = 0; x < gridSize; x++) {
+        const cell = document.createElement('div');
+        cell.className = 'cell';
+        cell.id = `cell-${x}-${y}`;
+        if (x === 4 && y === 4) {
+          cell.classList.add('goal');
+          cell.textContent = 'Goal';
+        }
+        board.appendChild(cell);
+      }
+    }
+    drawCritter();
+  }
+
+  function drawCritter() {
+    document.querySelectorAll('.cell').forEach(c => c.innerHTML = c.classList.contains('goal') ? 'Goal' : '');
+    const critterCell = document.getElementById(`cell-${critterX}-${critterY}`);
+    const critter = document.createElement('div');
+    critter.className = 'critter';
+    critter.innerText = 'F';
+    critterCell.appendChild(critter);
+  }
+
+  function resetGame() {
+    critterX = 0;
+    critterY = 0;
+    direction = 'right';
+    document.getElementById('message').textContent = '';
+    createBoard();
+    document.getElementById('code-sequence').innerHTML = '';
+  }
+
+  function runCode() {
+    const commands = Array.from(document.getElementById('code-sequence').children).map(el => el.dataset.cmd);
+    let step = 0;
+    const interval = setInterval(() => {
+      if (step >= commands.length) {
+        clearInterval(interval);
+        checkGoal();
+        return;
+      }
+      processCommand(commands[step]);
+      drawCritter();
+      step++;
+    }, 500);
+  }
+
+  function checkGoal() {
+    if (critterX === 4 && critterY === 4) {
+      document.getElementById('message').textContent = 'Great job! You reached the goal!';
+    } else {
+      document.getElementById('message').textContent = 'Oops! Try again.';
+    }
+  }
+
+  function processCommand(cmd) {
+    if (cmd === 'forward') {
+      if (direction === 'right' && critterX < gridSize - 1) critterX++;
+      else if (direction === 'left' && critterX > 0) critterX--;
+      else if (direction === 'down' && critterY < gridSize - 1) critterY++;
+      else if (direction === 'up' && critterY > 0) critterY--;
+    } else if (cmd === 'right') {
+      direction = { right: 'down', down: 'left', left: 'up', up: 'right' }[direction];
+    } else if (cmd === 'left') {
+      direction = { right: 'up', up: 'left', left: 'down', down: 'right' }[direction];
+    }
+  }
+
+  // Drag and Drop Logic
+  document.querySelectorAll('.block').forEach(block => {
+    block.addEventListener('dragstart', e => {
+      e.dataTransfer.setData('text/plain', block.dataset.cmd);
+    });
+  });
+
+  const sequenceZone = document.getElementById('code-sequence');
+  sequenceZone.addEventListener('dragover', e => e.preventDefault());
+  sequenceZone.addEventListener('drop', e => {
+    e.preventDefault();
+    const cmd = e.dataTransfer.getData('text/plain');
+    const newBlock = document.createElement('div');
+    newBlock.className = 'block';
+    newBlock.textContent = cmd.charAt(0).toUpperCase() + cmd.slice(1);
+    newBlock.dataset.cmd = cmd;
+    sequenceZone.appendChild(newBlock);
+  });
+
+  createBoard();
+</script>
+
+</body>
+</html>
